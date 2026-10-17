@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
 	"os"
@@ -250,7 +251,7 @@ func main() {
 			for {
 				_, err = client.API().MessagesSendMedia(ctx, docReq)
 				if err == nil {
-					fmt.Printf("[✓] File terkirim ke user %d!\n", ownerID)
+					fmt.Printf("[✓] File terkirim ke user %d!\n", targetUserID)
 					break
 				}
 				if d, ok := tgerr.AsFloodWait(err); ok {
