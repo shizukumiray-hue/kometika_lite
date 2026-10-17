@@ -1,0 +1,30 @@
+name: Build Terabox Sender
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: true
+
+      - name: Build Binary (Linux amd64)
+        run: |
+          go build -v -ldflags="-s -w" -o terabox-sender ./cmd/terabox
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terabox-sender-linux-amd64
+          path: terabox-sender
+          retention-days: 7

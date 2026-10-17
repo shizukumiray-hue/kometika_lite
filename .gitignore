@@ -1,0 +1,25 @@
+# Environment variables & secrets (WAJIB JANGAN DI-PUSH)
+.env
+*.env
+session.json
+session_terabox.json
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
+
+# Log files
+*.log
+mybot.log
+
+# Binaries
+bot_lite
+terabox-sender
+terabox-dl
+tmp/
+
+# OS / Editor
+.DS_Store
+*.swp
+*.swo

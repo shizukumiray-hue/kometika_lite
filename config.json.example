@@ -1,0 +1,10 @@
+{
+  "telegram_api_id": 12345678,
+  "telegram_api_hash": "abcdef1234567890abcdef1234567890",
+  "telegram_bot_token": "1234567890:ABCdefGhIJKlmNoPQRsTUVwxyZ",
+  "telegram_bot_username": "kometika_bot",
+  "owner_id": 123456789,
+  "group_id": "",
+  "group_hash": "",
+  "terabox_ndus": ""
+}
