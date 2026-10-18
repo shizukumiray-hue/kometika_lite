@@ -35,8 +35,6 @@ jobs:
             goarch: amd64
           - goos: linux
             goarch: arm64
-          - goos: windows
-            goarch: amd64
           - goos: darwin
             goarch: amd64
           - goos: darwin
@@ -62,12 +60,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          EXT=""
-          if [ "$GOOS" = "windows" ]; then
-            EXT=".exe"
-          fi
-          
-          OUTPUT_NAME="kometika-lite-${GOOS}-${GOARCH}${EXT}"
+          OUTPUT_NAME="kometika-lite-${GOOS}-${GOARCH}"
           go build -v -ldflags="-s -w" -o "$OUTPUT_NAME" .
           echo "OUTPUT_FILE=$OUTPUT_NAME" >> $GITHUB_ENV
 
@@ -78,7 +71,7 @@ jobs:
 
       - name: Kompres binary (UPX)
         run: |
-          if [ "$GOOS" = "linux" ] || [ "$GOOS" = "windows" ]; then
+          if [ "$GOOS" = "linux" ]; then
             sudo apt-get update -qq
             sudo apt-get install -y -qq upx-ucl
             upx --best "$OUTPUT_FILE" || echo "UPX gagal, lanjut tanpa kompresi"
