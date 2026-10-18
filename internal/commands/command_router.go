@@ -52,6 +52,8 @@ func (r *CommandRouter) RouteCommand(ctx context.Context, msg *tg.Message, entit
 		return r.handleGetID(ctx, msg, entities, user)
 	case "getlog":
 		return r.handleGetLog(ctx, msg, entities, user)
+	case "speedtest", "testspeed":
+		return r.handleSpeedtest(ctx, msg, entities)
 	case "guestmode", "guest":
 		return r.handleGuestMode(ctx, msg, entities, user, args)
 	case "music", "playmusic":
@@ -257,4 +259,8 @@ func (r *CommandRouter) handleMusic(ctx context.Context, msg *tg.Message, entiti
 	}
 	url := args[0]
 	return HandleMusicCommand(ctx, r.client, msg, entities, url, r.logger)
+}
+
+func (r *CommandRouter) handleSpeedtest(ctx context.Context, msg *tg.Message, entities tg.Entities) error {
+	return HandleSpeedtest(ctx, r.client, msg, entities, r.logger)
 }

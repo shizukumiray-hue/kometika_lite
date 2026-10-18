@@ -1,0 +1,141 @@
+name: Build and Release Kometika-Lite
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag / Versi Release (contoh: v1.0.0)'
+        required: false
+        default: ''
+      release_name:
+        description: 'Judul Release'
+        required: false
+        default: ''
+      draft:
+        description: 'Buat sebagai draft?'
+        type: boolean
+        default: false
+      prerelease:
+        description: 'Tandai sebagai pre-release?'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build for ${{ matrix.goos }}_${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+
+    steps:
+      - name: Checkout kode
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+          cache-dependency-path: 'go.sum'
+
+      - name: Download dependensi
+        run: go mod download
+
+      - name: Build binary
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          EXT=""
+          if [ "$GOOS" = "windows" ]; then
+            EXT=".exe"
+          fi
+          
+          OUTPUT_NAME="kometika-lite-${GOOS}-${GOARCH}${EXT}"
+          go build -v -ldflags="-s -w" -o "$OUTPUT_NAME" .
+          echo "OUTPUT_FILE=$OUTPUT_NAME" >> $GITHUB_ENV
+
+      - name: Cek binary
+        run: |
+          file "$OUTPUT_FILE"
+          ls -lh "$OUTPUT_FILE"
+
+      - name: Kompres binary (UPX)
+        run: |
+          if [ "$GOOS" = "linux" ] || [ "$GOOS" = "windows" ]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq upx-ucl
+            upx --best "$OUTPUT_FILE" || echo "UPX gagal, lanjut tanpa kompresi"
+            ls -lh "$OUTPUT_FILE"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kometika-lite-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ env.OUTPUT_FILE }}
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Determine Tag and Name
+        id: vars
+        run: |
+          INPUT_TAG="${{ github.event.inputs.tag_name }}"
+          if [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            TAG="v1.0.0-${{ github.run_number }}"
+          fi
+
+          INPUT_NAME="${{ github.event.inputs.release_name }}"
+          if [ -n "$INPUT_NAME" ]; then
+            NAME="$INPUT_NAME"
+          else
+            NAME="Release $TAG"
+          fi
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+
+      - name: Upload ke Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: ${{ steps.vars.outputs.name }}
+          generate_release_notes: true
+          draft: ${{ github.event.inputs.draft == 'true' }}
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

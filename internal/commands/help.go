@@ -41,6 +41,7 @@ func HandleHelpCommand(ctx context.Context, client *tg.Client, msg *tg.Message, 
 • <code>/music [url]</code> - Unduh musik/audio YouTube
 • <code>/ping</code> - Cek respons bot
 • <code>/uptime</code> - Cek status monitoring server (Owner only)
+• <code>/speedtest</code> - Uji kecepatan jaringan server bot
 • <code>/goroutine</code> - Cek status runtime go (DM only)
 • <code>/getid</code> - Cek ID user / grup / channel (Owner only)
 • <code>/fiture</code> atau <code>/status</code> - Cek status toggle fitur

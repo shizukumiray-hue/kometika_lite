@@ -2,6 +2,7 @@ package terabox
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -12,27 +13,47 @@ import (
 	"kometika-lite/internal/log"
 )
 
-var loggerPtr *zap.Logger
+var (
+	loggerMu  sync.RWMutex
+	loggerPtr *zap.Logger
+)
+
+func init() {
+	// Default zap logger jika belum di-set
+	l, err := zap.NewProduction()
+	if err == nil {
+		loggerPtr = l
+	}
+}
 
 func SetLogger(l *zap.Logger) {
+	loggerMu.Lock()
 	loggerPtr = l
+	loggerMu.Unlock()
+}
+
+func getLogger() *zap.Logger {
+	loggerMu.RLock()
+	l := loggerPtr
+	loggerMu.RUnlock()
+	return l
 }
 
 func logInfo(msg string, fields ...zap.Field) {
-	if loggerPtr != nil {
-		loggerPtr.Info(msg, fields...)
+	if l := getLogger(); l != nil {
+		l.Info(msg, fields...)
 	}
 }
 
 func logWarn(msg string, fields ...zap.Field) {
-	if loggerPtr != nil {
-		loggerPtr.Warn(msg, fields...)
+	if l := getLogger(); l != nil {
+		l.Warn(msg, fields...)
 	}
 }
 
 func logError(msg string, fields ...zap.Field) {
-	if loggerPtr != nil {
-		loggerPtr.Error(msg, fields...)
+	if l := getLogger(); l != nil {
+		l.Error(msg, fields...)
 	}
 }
 
@@ -103,6 +124,7 @@ func FetchTeraboxUniversal(teraboxURL string) ([]TeraboxUniversalData, error) {
 		name string
 		fn   func(string) ([]TeraboxUniversalData, error)
 	}{
+		{"Komiktap API", FetchKomiktapUniversal},
 		{"Sechno API", FetchSechnoUniversal},
 		{"Terabox Mayumi", FetchTeraboxDirectUniversal},
 		{"Iteraplay", FetchIteraMediaUniversal},
@@ -114,19 +136,6 @@ func FetchTeraboxUniversal(teraboxURL string) ([]TeraboxUniversalData, error) {
 	var lastErr error
 	for _, apiItem := range apis {
 		cb := registry.Get(apiItem.name)
-
-		// Cek state circuit breaker
-		if cb.State() == gobreaker.StateOpen {
-			logWarn("API Terabox di-skip (circuit breaker OPEN / cooldown)",
-				zap.String("api", apiItem.name),
-			)
-			ctxBg := context.Background()
-			log.LogWarn(ctxBg, "Terabox_CircuitBreaker",
-				fmt.Sprintf("API Terabox %s dilewati karena circuit breaker OPEN", apiItem.name),
-				"state=open",
-			)
-			continue
-		}
 
 		logInfo("Mencoba API Terabox", zap.String("api", apiItem.name), zap.String("url", teraboxURL))
 
@@ -145,6 +154,18 @@ func FetchTeraboxUniversal(teraboxURL string) ([]TeraboxUniversalData, error) {
 		if err == nil && len(data) > 0 {
 			logInfo("API Terabox berhasil", zap.String("api", apiItem.name), zap.Int("total_files", len(data)))
 			return data, nil
+		}
+
+		if errors.Is(err, gobreaker.ErrOpenState) || errors.Is(err, gobreaker.ErrTooManyRequests) {
+			logWarn("API Terabox di-skip (circuit breaker OPEN / cooldown)",
+				zap.String("api", apiItem.name),
+			)
+			ctxBg := context.Background()
+			log.LogWarn(ctxBg, "Terabox_CircuitBreaker",
+				fmt.Sprintf("API Terabox %s dilewati karena circuit breaker OPEN", apiItem.name),
+				"state=open",
+			)
+			continue
 		}
 
 		lastErr = err

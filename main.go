@@ -37,7 +37,7 @@ var (
 )
 
 const (
-	maxWorkers   = 150
+	maxWorkers   = 200
 	jobQueueSize = 1000
 )
 
@@ -335,7 +335,7 @@ func handleCommand(ctx context.Context, tgClient *tg.Client, msg *tg.Message, en
 
 	router := commands.NewCommandRouter(tgClient, rootID, botUsername, logger)
 
-	needsAsync := []string{"dl", "start", "fiture", "features", "liststatus", "status", "on", "off", "help", "getlog", "guestmode", "guest"}
+	needsAsync := []string{"dl", "start", "fiture", "features", "liststatus", "status", "on", "off", "help", "getlog", "guestmode", "guest", "speedtest", "testspeed", "uptime"}
 	for _, asyncCmd := range needsAsync {
 		if cmd == asyncCmd {
 			enqueueJob(func() {

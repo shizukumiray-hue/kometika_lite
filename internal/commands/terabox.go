@@ -418,8 +418,8 @@ func fetchAndShowTerabox(ctx context.Context, client *tg.Client, peer tg.InputPe
 
 func buildTeraboxFileMarkup(files []terabox.TeraboxUniversalData, reqID string, page int, isOwner bool) *tg.ReplyInlineMarkup {
 	var rows []tg.KeyboardButtonRow
-	start := page * 8
-	end := min(start+8, len(files))
+	start := page * 12
+	end := min(start+12, len(files))
 
 	for i := start; i < end; i++ {
 		btnText := fmt.Sprintf("📁 %s", formatFileNameButton(files[i].FileName))
